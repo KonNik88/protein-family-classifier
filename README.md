@@ -1,17 +1,49 @@
 # ESM Protein Family Classifier 🧬
 
-Classify proteins into functional **families** (kinases, receptors, hydrolases, transporters, etc.) using
-**pretrained ESM-1b embeddings** and compact ML models.
+Classify proteins into functional **families** (kinases, receptors, hydrolases, transporters, etc.)
+using **pretrained ESM-1b embeddings** and compact ML models.
 
 The goal of this repo is to provide a **clean, reproducible, and interpretable** pipeline that can run on a
 single-GPU workstation and still look good on GitHub / in a portfolio.
 
 <p align="left">
+  <!-- Core tech -->
   <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white"></a>
   <a href="https://pytorch.org/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-2.x-EE4C2C?logo=pytorch&logoColor=white"></a>
   <a href="https://github.com/facebookresearch/esm"><img alt="ESM" src="https://img.shields.io/badge/ESM-1b-3C7EBB"></a>
+  <a href="https://mlflow.org/"><img alt="MLflow" src="https://img.shields.io/badge/MLflow-tracking%20enabled-0194E2?logo=mlflow&logoColor=white"></a>
+  <a href="https://optuna.org/"><img alt="Optuna" src="https://img.shields.io/badge/Optuna-hyperparam%20search-7F52FF"></a>
+  <a href="https://jupyter.org/"><img alt="Jupyter" src="https://img.shields.io/badge/Jupyter-notebooks-F37626?logo=jupyter&logoColor=white"></a>
+  <!-- Meta -->
   <a href="https://opensource.org/licenses/MIT"><img alt="License" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
 </p>
+
+---
+
+## 🔎 Project at a glance
+
+> From raw UniProt sequences to interpretable, structure-aware protein family classification.
+
+- **Input:** amino-acid sequence (UniProt, 50–1000 aa).
+- **Representation:** frozen **ESM-1b** embeddings (1280-d per protein).
+- **Models:** Logistic Regression, RandomForest, MLP, CatBoost.
+- **Tracking:** hyperparameter search with **Optuna**, experiments logged to **MLflow**.
+- **Interpretability:**
+  - **UMAP** projection of the embedding space,
+  - **SHAP** explanations on top of ESM embeddings,
+  - one **3D structure case study** per family via **py3Dmol** (real PDB/CIF).
+
+Conceptually, the pipeline looks like this:
+
+```text
+UniProt sequence
+      ↓
+  ESM-1b encoder  →  1280-d embedding
+      ↓
+  ML classifier (LogReg / RF / MLP / CatBoost)
+      ↓
+Prediction + UMAP + SHAP + 3D structure (py3Dmol)
+```
 
 ---
 
@@ -98,6 +130,109 @@ pip install -r requirements.txt
 > using the command recommended on https://pytorch.org/get-started/locally/
 
 At first run, ESM weights will be automatically downloaded to your Torch cache directory.
+
+---
+
+## 🔁 How to reproduce the results
+
+Below is the exact flow used in this repo.  
+You can either reuse the precomputed embeddings or recompute everything from scratch.
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/KonNik88/protein-family-classifier.git
+cd protein-family-classifier
+```
+
+### 2. Create and activate environment
+
+Using conda (recommended):
+
+```bash
+conda create -n esm_env python=3.10 -y
+conda activate esm_env
+
+pip install -r requirements.txt
+```
+
+> If needed, install a CUDA-compatible PyTorch build separately following the instructions from https://pytorch.org/
+
+### 3. (Option A) Use precomputed embeddings
+
+If you already have:
+
+- `artifacts/embeddings/esm1b_embeddings_small_maxlen1000.npy`
+- `artifacts/embeddings/metadata_small_maxlen1000.csv`
+
+you can skip directly to **Step 5**.
+
+### 3. (Option B) Rebuild dataset from UniProt (optional)
+
+Open and run:
+
+- `notebooks/01_build_dataset.ipynb` – assemble & clean the protein dataset.
+- `notebooks/02_eda_and_fetch.ipynb` – sanity checks, distributions, family balance.
+
+This will populate `data/processed/` with the curated metadata.
+
+### 4. Compute ESM-1b embeddings
+
+Run:
+
+- `notebooks/03_esm_embeddings.ipynb`
+
+This notebook:
+
+- loads sequences and metadata,
+- runs ESM-1b once over all proteins,
+- saves embeddings to `artifacts/embeddings/esm1b_embeddings_small_maxlen1000.npy`,
+- saves aligned metadata to `artifacts/embeddings/metadata_small_maxlen1000.csv`.
+
+### 5. Train and evaluate models
+
+Run:
+
+- `notebooks/04_train_and_eval.ipynb`
+
+This notebook:
+
+- performs a stratified train/val/test split,
+- tunes hyperparameters with Optuna for:
+  - Logistic Regression
+  - RandomForest
+  - MLP
+  - CatBoost
+- logs all runs and metrics to **MLflow**,
+- saves the best models to `artifacts/models/`.
+
+To inspect MLflow logs:
+
+```bash
+mlflow ui --backend-store-uri file://$(pwd)/logs/mlruns
+```
+
+and open the printed URL in your browser.
+
+### 6. Interpret and visualize
+
+Run:
+
+- `notebooks/05_interpret_and_visualize.ipynb`
+
+This notebook:
+
+- builds **UMAP** projections of the ESM embedding space,
+- analyzes the final classifier with **SHAP**,
+- selects one representative protein per family,
+- fetches real PDB/CIF structures via PDBe/RCSB,
+- renders 3D folds for each family with **py3Dmol**.
+
+At the end you get:
+
+- a global picture of how ESM organizes protein families in latent space,
+- class-wise and per-sample explanations,
+- a structural view (3D) for each functional family.
 
 ---
 
