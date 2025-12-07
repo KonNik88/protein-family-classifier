@@ -1,0 +1,32 @@
+# Core scientific stack
+numpy>=1.24
+pandas>=2.0
+scikit-learn>=1.4
+matplotlib>=3.8
+seaborn>=0.13
+tqdm>=4.66
+
+# Deep learning & ESM
+torch>=2.1
+fair-esm>=2.0
+
+# Dimensionality reduction & visualization
+umap-learn>=0.5
+
+# Modeling & optimization
+catboost>=1.2
+mlflow>=2.14
+optuna>=3.6
+
+# Interpretability
+shap>=0.45
+
+# Bioinformatics & utilities
+biopython>=1.83
+requests>=2.31
+
+# 3D visualization
+py3Dmol>=2.4
+
+# Notebooks
+jupyter>=1.0
